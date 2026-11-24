@@ -1,21 +1,36 @@
 import os
+import sys
 
 LINE = "The server crashed while deploying the fix for the last crash. Your work is saved; our dignity is still loading."
 
-OUT_DIR = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
-os.makedirs(OUT_DIR, exist_ok=True)
+MAX_CHARS = 200
 
-path = os.path.join(OUT_DIR, "entry.txt")
-with open(path, "w", encoding="utf-8") as f:
-    f.write(LINE)
 
-# Read-back verification: the file must hold exactly the line, 1-200 chars.
-with open(path, "r", encoding="utf-8") as f:
-    written = f.read()
-assert written == LINE, "entry.txt does not match LINE"
-assert 1 <= len(written) <= 200, "entry must be 1-200 chars"
-assert written.strip(), "entry must not be only whitespace"
-assert "\n" not in written, "entry must be a single line"
+def validate(line):
+    if not line or not line.strip():
+        raise ValueError("entry must not be empty or only whitespace")
+    if "\n" in line or "\r" in line:
+        raise ValueError("entry must be a single line")
+    if len(line) > MAX_CHARS:
+        raise ValueError(f"entry is {len(line)} chars, over the {MAX_CHARS} limit")
+    line.encode("utf-8")
+    return line
 
-print(f"wrote {len(LINE)} chars to {path}")
-print(LINE)
+
+def main():
+    line = validate(LINE)
+    out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
+    os.makedirs(out_dir, exist_ok=True)
+    path = os.path.join(out_dir, "entry.txt")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(line)
+    with open(path, "r", encoding="utf-8") as f:
+        written = f.read()
+    assert written == line, "entry.txt does not match LINE"
+    print(f"wrote {len(line)} chars to {path}")
+    print(line)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
